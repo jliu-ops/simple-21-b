@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython_stdlib.min.js"></script>
+    <style>
+        body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
+        #console { white-space: pre-wrap; }
+    </style>
+</head>
+<body onload="brython()">
+    <div id="console"></div>
+    <script type="text/python">
+import random
+from browser import prompt, document
+
+def print_to_web(txt):
+    document['console'].innerHTML += str(txt) + "\n"
+
+# Game Setup
+sticks = 21
+m = 3
+while sticks % (m+1) == 0:
+    m = random.randint(1,3)
+
+print_to_web("--- 21 STICKS GAME ---")
+print_to_web(f"Remove 1 to {m} sticks. Last one taken wins.")
+
+while sticks > 0:
+    print_to_web(f"\nSticks remaining: {sticks}")
+    
+    # This creates a pop-up input that works perfectly in all browsers
+    val = prompt(f"How many sticks (1-{m})?")
+    
+    try:
+        take = int(val)
+        if take < 1 or take > m:
+            print_to_web("Invalid move!")
+            continue
+    except:
+        continue
+
+    sticks -= take
+    if sticks <= 0:
+        print_to_web("🎉 YOU WIN!")
+        break
+
+    # AI Turn
+    state = sticks % (m+1)
+    ai = state if state != 0 else random.randint(1, m)
+    print_to_web(f"Opponent takes {ai} sticks.")
+    sticks -= ai
+    
+    if sticks <= 0:
+        print_to_web("💀 OPPONENT WINS!")
+        break
+    </script>
+</body>
+</html>
