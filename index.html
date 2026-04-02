@@ -5,71 +5,86 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython_stdlib.min.js"></script>
     <style>
-        body { 
-            background-color: #000; 
-            color: #00FF00; 
-            font-family: 'Courier New', Courier, monospace; 
-            padding: 40px;
-            line-height: 1.6;
-        }
-        #output { white-space: pre-wrap; margin-bottom: 20px; }
-        .win { color: #55FF55; font-weight: bold; font-size: 1.2em; }
-        .lose { color: #FF5555; font-weight: bold; font-size: 1.2em; }
+        body { background-color: #121212; color: #00FF00; font-family: 'Courier New', monospace; padding: 20px; display: flex; flex-direction: column; height: 90vh; }
+        #terminal { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; margin-bottom: 10px; border-bottom: 1px solid #333; }
+        #input-line { display: flex; font-size: 1.1em; }
+        #prompt { margin-right: 10px; }
+        input { background: transparent; border: none; color: #00FF00; font-family: inherit; font-size: inherit; outline: none; flex-grow: 1; }
+        .win { color: #55FF55; font-weight: bold; }
+        .lose { color: #FF5555; font-weight: bold; }
     </style>
 </head>
 <body onload="brython()">
-    <div id="output"></div>
-    
+    <div id="terminal"></div>
+    <div id="input-line">
+        <span id="prompt">How many (1-3)?></span>
+        <input type="text" id="user_input" autofocus autocomplete="off">
+    </div>
+
     <script type="text/python">
 import random
-from browser import document, prompt
+from browser import document, window
 
-def log(text, class_name=""):
-    span = document.createElement('div')
-    span.text = str(text)
-    if class_name:
-        span.classList.add(class_name)
-    document['output'] <= span
-
-# --- GAME LOGIC ---
+# --- GLOBAL GAME STATE ---
 sticks = 21
 m = 3
-while sticks % (m+1) == 0:
-    m = random.randint(1,3)
+game_over = False
 
-log("=== 21 STICKS GAME ===")
-log(f"You may remove 1 through {m} sticks.")
-log("The player that removes the last stick wins.\n")
+def log(text, class_name=""):
+    div = document.createElement('div')
+    div.text = str(text)
+    if class_name: div.classList.add(class_name)
+    document['terminal'] <= div
+    document['terminal'].scrollTop = document['terminal'].scrollHeight
 
-while sticks > 0:
-    log(f"There are {sticks} sticks remaining.")
+def process_move(event):
+    global sticks, game_over
+    if event.keyCode != 13 or game_over: return # Only trigger on 'Enter'
     
-    # This creates a browser popup for input
-    user_val = prompt(f"How many sticks (1-{m})?")
+    val = document['user_input'].value
+    document['user_input'].value = "" # Clear input
     
     try:
-        take = int(user_val)
+        take = int(val)
         if take < 1 or take > m:
-            log("!! Invalid move. Try again.")
-            continue
+            log(f"!! {take} is an invalid move. Try 1-{m}.")
+            return
     except:
-        continue
+        log("!! Please enter a valid number.")
+        return
 
+    # PLAYER TURN
+    log(f"> You took {take} sticks.")
     sticks -= take
+    
     if sticks <= 0:
-        log("\n🎉 YOU REMOVED THE LAST STICK! YOU WIN!", "win")
-        break
+        log("\n🎉 YOU WIN!", "win")
+        game_over = True
+        return
 
-    # AI Move
+    # AI TURN
     state = sticks % (m+1)
     ai = state if state != 0 else random.randint(1, m)
-    
     log(f"Opponent takes {ai} sticks.")
     sticks -= ai
     
     if sticks <= 0:
-        log("\n💀 OPPONENT TOOK THE LAST STICK. OPPONENT WINS!", "lose")
-        break
+        log("\n💀 OPPONENT WINS!", "lose")
+        game_over = True
+    else:
+        log(f"--- {sticks} sticks remaining ---")
+
+# Setup Initial Game State
+while sticks % (m+1) == 0:
+    m = random.randint(1,3)
+
+log("=== 21 STICKS GAME ===")
+log(f"Remove 1 to {m} sticks. Last one taken wins.")
+log(f"--- {sticks} sticks remaining ---")
+document['prompt'].text = f"How many (1-{m})?> "
+
+# Bind the 'Enter' key to the function
+document['user_input'].bind('keydown', process_move)
     </script>
 </body>
 </html>
